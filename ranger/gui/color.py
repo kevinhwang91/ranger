@@ -64,9 +64,9 @@ default    = -1
 normal     = curses.A_NORMAL
 bold       = curses.A_BOLD
 try:
-    italic = curses.A_ITALIC   
+    italic = curses.A_ITALIC
 except AttributeError:
-    italic = curses.A_NORMAL   
+    italic = curses.A_NORMAL
 blink      = curses.A_BLINK
 reverse    = curses.A_REVERSE
 underline  = curses.A_UNDERLINE

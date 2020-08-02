@@ -735,15 +735,25 @@ class UeberzugImageDisplayer(ImageDisplayer):
             return
 
         self.process = Popen(['ueberzug', 'layer', '--silent'], cwd=self.working_dir,
-                             stdin=PIPE, universal_newlines=True)
+                             stdin=PIPE, stderr=PIPE, universal_newlines=True)
         self.is_initialized = True
+        timer_check_exit = threading.Timer(2, self._check_exit, [self.process])
+        timer_check_exit.start()
 
     def _execute(self, **kwargs):
         self.initialize()
         self.process.stdin.write(json.dumps(kwargs) + '\n')
         self.process.stdin.flush()
 
+    def _check_exit(self, process):
+        if process and  process.poll() == 1:
+            process.wait()
+            self.process = None
+
     def draw(self, path, start_x, start_y, width, height):
+        if self.is_initialized and self.process is None:
+            return
+
         self._execute(
             action='add',
             identifier=self.IMAGE_ID,
@@ -759,7 +769,7 @@ class UeberzugImageDisplayer(ImageDisplayer):
             self._execute(action='remove', identifier=self.IMAGE_ID)
 
     def quit(self):
-        if self.is_initialized and self.process.poll() is None:
+        if self.is_initialized and self.process and self.process.poll() is None:
             timer_kill = threading.Timer(1, self.process.kill, [])
             try:
                 self.process.terminate()

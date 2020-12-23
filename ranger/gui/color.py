@@ -15,7 +15,6 @@ bool(attr & reverse) # => False
 
 from __future__ import (absolute_import, division, print_function)
 
-import sys
 import curses
 
 DEFAULT_FOREGROUND = curses.COLOR_WHITE

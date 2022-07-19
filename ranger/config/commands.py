@@ -1037,8 +1037,10 @@ class touch(Command):
                 makedirs(dirname)
             with open(fname, 'a', encoding="utf-8"):
                 pass  # Just create the file
+            self.fm.get_directory(dirname).load_content(schedule=False)
         else:
-            self.fm.notify("file/directory exists!", bad=True)
+            self.fm.notify("file/directory exists!")
+        self.fm.select_file(fname)
 
     def tab(self, tabnum):
         return self._tab_directory_content()

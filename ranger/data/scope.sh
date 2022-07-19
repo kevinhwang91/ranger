@@ -80,11 +80,15 @@ handle_extension() {
             exit 1;;
 
         ## OpenDocument
-        odt|ods|odp|sxw)
+        odt|sxw)
             ## Preview as text conversion
             odt2txt "${FILE_PATH}" && exit 5
             ## Preview as markdown conversion
             pandoc -s -t markdown -- "${FILE_PATH}" && exit 5
+            exit 1;;
+        ods|odp)
+            ## Preview as text conversion (unsupported by pandoc for markdown)
+            odt2txt "${FILE_PATH}" && exit 5
             exit 1;;
 
         ## XLSX
@@ -104,7 +108,15 @@ handle_extension() {
             ;;
 
         ## JSON
-        json|ipynb)
+        json)
+            jq --color-output . "${FILE_PATH}" && exit 5
+            python -m json.tool -- "${FILE_PATH}" && exit 5
+            ;;
+
+        ## Jupyter Notebooks
+        ipynb)
+            jupyter nbconvert --to markdown "${FILE_PATH}" --stdout | env COLORTERM=8bit bat --color=always --style=plain --language=markdown && exit 5
+            jupyter nbconvert --to markdown "${FILE_PATH}" --stdout && exit 5
             jq --color-output . "${FILE_PATH}" && exit 5
             python -m json.tool -- "${FILE_PATH}" && exit 5
             ;;
@@ -128,9 +140,11 @@ handle_image() {
     local mimetype="${1}"
     case "${mimetype}" in
         ## SVG
-        # image/svg+xml|image/svg)
-        #     convert -- "${FILE_PATH}" "${IMAGE_CACHE_PATH}" && exit 6
-        #     exit 1;;
+        image/svg+xml|image/svg)
+            rsvg-convert --keep-aspect-ratio --width "${DEFAULT_SIZE%x*}" "${FILE_PATH}" -o "${IMAGE_CACHE_PATH}.png" \
+                && mv "${IMAGE_CACHE_PATH}.png" "${IMAGE_CACHE_PATH}" \
+                && exit 6
+            exit 1;;
 
         ## DjVu
         # image/vnd.djvu)
@@ -256,19 +270,23 @@ handle_image() {
     #     mv "${TMPPNG}" "${IMAGE_CACHE_PATH}"
     # }
 
-    # case "${FILE_EXTENSION_LOWER}" in
-    #     ## 3D models
-    #     ## OpenSCAD only supports png image output, and ${IMAGE_CACHE_PATH}
-    #     ## is hardcoded as jpeg. So we make a tempfile.png and just
-    #     ## move/rename it to jpg. This works because image libraries are
-    #     ## smart enough to handle it.
-    #     csg|scad)
-    #         openscad_image "${FILE_PATH}" && exit 6
-    #         ;;
-    #     3mf|amf|dxf|off|stl)
-    #         openscad_image <(echo "import(\"${FILE_PATH}\");") && exit 6
-    #         ;;
-    # esac
+    case "${FILE_EXTENSION_LOWER}" in
+       ## 3D models
+       ## OpenSCAD only supports png image output, and ${IMAGE_CACHE_PATH}
+       ## is hardcoded as jpeg. So we make a tempfile.png and just
+       ## move/rename it to jpg. This works because image libraries are
+       ## smart enough to handle it.
+       # csg|scad)
+       #     openscad_image "${FILE_PATH}" && exit 6
+       #     ;;
+       # 3mf|amf|dxf|off|stl)
+       #     openscad_image <(echo "import(\"${FILE_PATH}\");") && exit 6
+       #     ;;
+       drawio)
+           draw.io -x "${FILE_PATH}" -o "${IMAGE_CACHE_PATH}" \
+               --width "${DEFAULT_SIZE%x*}" && exit 6
+           exit 1;;
+    esac
 }
 
 handle_mime() {
